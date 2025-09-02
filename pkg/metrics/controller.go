@@ -125,6 +125,14 @@ func (c *Controller) recordGsWhenUpdate(oldObj, newObj interface{}) {
 	if oldState != newState {
 		GameServersStateCount.WithLabelValues(newState).Inc()
 		GameServersStateCount.WithLabelValues(oldState).Dec()
+
+		// Record state transition duration
+		if !newGs.Status.LastTransitionTime.IsZero() && !oldGs.Status.LastTransitionTime.IsZero() {
+			duration := newGs.Status.LastTransitionTime.Sub(oldGs.Status.LastTransitionTime.Time).Seconds()
+			if duration >= 0 {
+				GameServerStateTransitionSeconds.WithLabelValues(oldState, newState, gssName, newGs.Namespace).Observe(duration)
+			}
+		}
 	}
 	if oldOpsState != newOpsState {
 		GameServersOpsStateCount.WithLabelValues(newOpsState, gssName, newGs.Namespace).Inc()

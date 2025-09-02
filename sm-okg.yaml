@@ -1,0 +1,37 @@
+# kruise-game-system/kruise-game-metrics 服务 —— 直连 8080
+apiVersion: v1
+kind: Service
+metadata:
+  name: kruise-game-metrics
+  namespace: kruise-game-system
+  labels:
+    app.kubernetes.io/name: kruise-game
+    app.kubernetes.io/component: controller
+spec:
+  selector:
+    control-plane: controller-manager
+  ports:
+  - name: metrics
+    port: 8080
+    targetPort: 8080
+---
+# monitoring/kruise-game-metrics ServiceMonitor —— 让 Prom 抓取
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kruise-game-metrics
+  namespace: monitoring
+  labels:
+    release: monitoring   # ← 必须与 kube-prometheus-stack 的 release 一致（你的是 monitoring）
+spec:
+  namespaceSelector:
+    matchNames: ["kruise-game-system"]
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kruise-game
+      app.kubernetes.io/component: controller
+  endpoints:
+  - port: metrics
+    path: /metrics
+    interval: 15s
+

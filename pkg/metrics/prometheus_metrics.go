@@ -17,6 +17,7 @@ limitations under the License.
 package metrics
 
 import (
+	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/prometheus/client_golang/prometheus"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 )
@@ -28,6 +29,9 @@ func init() {
 	metrics.Registry.MustRegister(GameServerSetsReplicasCount)
 	metrics.Registry.MustRegister(GameServerDeletionPriority)
 	metrics.Registry.MustRegister(GameServerUpdatePriority)
+	metrics.Registry.MustRegister(GameServerStateTransitionSeconds)
+	metrics.Registry.MustRegister(ErrorsTotal)
+	metrics.Registry.MustRegister(grpc_prometheus.DefaultServerMetrics)
 }
 
 var (
@@ -72,5 +76,20 @@ var (
 			Help: "The updatePriority of gameserver.)",
 		},
 		[]string{"gsName", "gsNs"},
+	)
+	GameServerStateTransitionSeconds = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "okg_gameserver_state_transition_seconds",
+			Help:    "The duration of gameserver state transitions in seconds",
+			Buckets: []float64{0.1, 0.5, 1, 2, 5, 10, 20, 30, 60, 120, 300},
+		},
+		[]string{"from_state", "to_state", "gssName", "namespace"},
+	)
+	ErrorsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "okg_errors_total",
+			Help: "Total number of errors by component and reason",
+		},
+		[]string{"component", "reason"},
 	)
 )

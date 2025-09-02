@@ -23,6 +23,7 @@ import (
 	"time"
 
 	ackv1alpha1 "github.com/aws-controllers-k8s/elbv2-controller/apis/v1alpha1"
+	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	kruiseV1alpha1 "github.com/openkruise/kruise-api/apps/v1alpha1"
 	kruiseV1beta1 "github.com/openkruise/kruise-api/apps/v1beta1"
 	"google.golang.org/grpc"
@@ -210,7 +211,14 @@ func main() {
 
 	externalScaler := externalscaler.NewExternalScaler(mgr.GetClient())
 	go func() {
-		grpcServer := grpc.NewServer()
+		// Enable gRPC metrics collection
+		grpc_prometheus.EnableHandlingTimeHistogram()
+		
+		grpcServer := grpc.NewServer(
+			grpc.UnaryInterceptor(grpc_prometheus.UnaryServerInterceptor),
+			grpc.StreamInterceptor(grpc_prometheus.StreamServerInterceptor),
+		)
+		
 		lis, _ := net.Listen("tcp", scaleServerAddr)
 		externalscaler.RegisterExternalScalerServer(grpcServer, externalScaler)
 		if err := grpcServer.Serve(lis); err != nil {
